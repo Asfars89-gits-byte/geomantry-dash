@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Geomantry Dash v.A37988</title>
+<style>
+:root{--cyan:#31e6ff;--pink:#ff3d9a;--yellow:#ffe45c;--ink:#080b20}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 50% 0%,#202b66 0%,#0b1030 48%,#050713 100%);color:#fff;font-family:system-ui,Segoe UI,Arial,sans-serif;display:grid;place-items:center;padding:18px}
+.shell{width:min(100%,1000px)}
+.topline{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;color:#aebcff;font-size:13px;letter-spacing:2px;text-transform:uppercase}
+.logo{font-weight:900;color:#fff;text-shadow:0 0 18px #31e6ff;letter-spacing:1px}
+.gamebox{position:relative;border:2px solid #5365b8;border-radius:18px;overflow:hidden;box-shadow:0 0 40px #172d7c80, inset 0 0 25px #1c2d78;background:#090d27}
+canvas{display:block;width:100%;height:auto;aspect-ratio:16/9;background:#10183d;touch-action:manipulation}
+.hud{position:absolute;inset:14px 16px auto;display:flex;justify-content:space-between;align-items:center;pointer-events:none;font-weight:800;text-shadow:0 2px 8px #000}
+.hud span{background:#080d2dcc;border:1px solid #6b7bd0;border-radius:9px;padding:7px 11px}
+.overlay{position:absolute;inset:0;display:grid;place-items:center;background:#05091dcc;padding:18px}
+.panel{width:min(92%,520px);text-align:center;background:linear-gradient(145deg,#18265bF2,#101638F5);border:1px solid #6177e8;border-radius:20px;padding:25px 22px;box-shadow:0 15px 55px #0009}
+h1{font-size:clamp(25px,5vw,43px);line-height:1.05;margin:0 0 8px;text-shadow:0 0 18px #31e6ff}
+.subtitle{color:#b8c7ff;margin:0 0 20px}
+.buttons{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin:16px 0}
+button{border:0;border-radius:10px;padding:12px 18px;font-weight:900;font-size:15px;color:#071027;background:var(--cyan);cursor:pointer;box-shadow:0 4px 0 #148ba6;transition:transform .12s,filter .12s}
+button:hover{filter:brightness(1.13);transform:translateY(-2px)}
+button:active{transform:translateY(2px);box-shadow:0 1px 0 #148ba6}
+button.secondary{background:#34447e;color:white;box-shadow:0 4px 0 #1a2857}
+button.pink{background:var(--pink);box-shadow:0 4px 0 #a21e61}
+.diffgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0}
+.diff{background:#273665;color:#dce6ff;box-shadow:0 3px 0 #111d46;padding:10px 5px;font-size:13px}
+.diff.selected{outline:2px solid var(--yellow);background:#42569a;color:#fff}
+.help{font-size:13px;color:#b8c7ff;line-height:1.55}
+.hidden{display:none!important}
+.bottom{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;color:#aebcff;font-size:13px;margin:12px 2px}
+#toast{color:var(--yellow)}
+@media(max-width:520px){.panel{padding:19px 13px}.diffgrid{grid-template-columns:repeat(2,1fr)}.hud{inset:8px 8px auto;font-size:12px}.hud span{padding:5px 7px}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="topline"><div class="logo">◆ GD / ARCADE</div><div>Original browser platform game</div></div>
+  <div class="gamebox">
+    <canvas id="game" width="960" height="540" aria-label="Geomantry Dash game area"></canvas>
+    <div class="hud hidden" id="hud"><span id="score">SCORE 0</span><span id="level">NORMAL</span><span id="progress">0%</span></div>
+    <div class="overlay" id="menu">
+      <div class="panel">
+        <h1>GEOMANTRY DASH</h1>
+        <p class="subtitle">v.A37988</p>
+        <p>Choose your difficulty</p>
+        <div class="diffgrid" id="diffs">
+          <button class="diff" data-diff="Easy">EASY</button>
+          <button class="diff selected" data-diff="Normal">NORMAL</button>
+          <button class="diff" data-diff="Hard">HARD</button>
+          <button class="diff" data-diff="Insane">INSANE</button>
+        </div>
+        <div class="buttons"><button id="play">▶ PLAY</button></div>
+        <p class="help">Jump over spikes and blocks. The run gets faster as you go.<br>Controls: SPACE / ↑ / W / click / tap to jump.</p>
+        <p class="help" id="bestMenu">BEST: 0</p>
+      </div>
+    </div>
+    <div class="overlay hidden" id="end">
+      <div class="panel">
+        <h1 id="endTitle">LEVEL FAILED!</h1>
+        <p class="subtitle" id="endText">You scored 0</p>
+        <div class="buttons"><button id="retry">↻ TRY AGAIN</button><button class="secondary" id="home">⌂ MENU</button></div>
+      </div>
+    </div>
+    <div class="overlay hidden" id="pause">
+      <div class="panel"><h1>PAUSED</h1><p class="subtitle">Take a breath. Your run is waiting.</p><div class="buttons"><button id="resume">RESUME</button><button class="secondary" id="pauseHome">MENU</button></div></div>
+    </div>
+  </div>
+  <div class="bottom"><span>SPACE / ↑ / W / tap = jump · P = pause</span><span id="toast">Tip: jump shortly before a spike.</span></div>
+</div>
+<script>
+(() => {
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+const W=960,H=540,ground=430;
+const menu=document.getElementById('menu'),end=document.getElementById('end'),pauseLayer=document.getElementById('pause'),hud=document.getElementById('hud');
+const scoreEl=document.getElementById('score'),levelEl=document.getElementById('level'),progressEl=document.getElementById('progress');
+const bestMenu=document.getElementById('bestMenu'),toast=document.getElementById('toast');
+const settings={
+ Easy:{speed:5.0,gap:390,gravity:0.62,jump:-13.2,color:'#55f2b5'},
+ Normal:{speed:6.2,gap:330,gravity:0.66,jump:-14.0,color:'#31e6ff'},
+ Hard:{speed:7.4,gap:285,gravity:0.70,jump:-14.4,color:'#ffbd4a'},
+ Insane:{speed:8.7,gap:245,gravity:0.73,jump:-14.8,color:'#ff4d88'}
+};
+let difficulty='Normal',state='menu',player,obstacles,particles,score,best=0,speed,frame,lastTime=0,world=0,spawnIn=0,groundOffset=0,levelLength=6500;
+try{best=Number(localStorage.getItem('geomantryBest')||0)}catch(e){}
+bestMenu.textContent='BEST: '+best;
+function reset(){
+ player={x:150,y:ground-42,size:38,vy:0,rot:0,onGround:true};
+ obstacles=[];particles=[];score=0;world=0;frame=0;spawnIn=55;speed=settings[difficulty].speed;groundOffset=0;
+}
+function start(){reset();state='playing';menu.classList.add('hidden');end.classList.add('hidden');pauseLayer.classList.add('hidden');hud.classList.remove('hidden');levelEl.textContent=difficulty.toUpperCase();lastTime=performance.now();requestAnimationFrame(loop)}
+function jump(){
+ if(state!=='playing')return;
+ if(player.onGround){player.vy=settings[difficulty].jump;player.onGround=false;for(let i=0;i<5;i++)particles.push({x:player.x+15,y:ground-5,vx:(Math.random()-.5)*4,vy:-Math.random()*3-1,life:22})}
+}
+function pause(){if(state==='playing'){state='paused';pauseLayer.classList.remove('hidden')}else if(state==='paused'){state='playing';pauseLayer.classList.add('hidden');lastTime=performance.now();requestAnimationFrame(loop)}}
+function makeObstacle(){
+ const r=Math.random();
+ if(r<.68){let count=1+(Math.random()<(difficulty==='Easy'?.18:.42)?1:0);obstacles.push({x:W+30,type:'spikes',count,w:count*36,h:36})}
+ else {let h=48+Math.random()*28;obstacles.push({x:W+30,type:'block',w:38,h})}
+}
+function rectHit(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y}
+function crash(){
+ state='ended';hud.classList.add('hidden');end.classList.remove('hidden');
+ const final=Math.floor(score);
+ document.getElementById('endTitle').textContent=final>=levelLength/10?'LEVEL COMPLETE!':'CRASHED!';
+ document.getElementById('endText').textContent='Score: '+final+' · Difficulty: '+difficulty;
+ if(final>best){best=final;try{localStorage.setItem('geomantryBest',best)}catch(e){}}
+ bestMenu.textContent='BEST: '+best;
+}
+function drawBackground(){
+ const grad=ctx.createLinearGradient(0,0,0,H);grad.addColorStop(0,'#18265a');grad.addColorStop(1,'#090d27');ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
+ ctx.strokeStyle='#34488755';ctx.lineWidth=1;
+ for(let x=-(world*.18%60);x<W;x+=60){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}
+ for(let y=30;y<ground;y+=60){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
+ for(let i=0;i<18;i++){let x=(i*79-world*.28%(W+100)+W+100)%(W+100),y=45+(i*47)%300;ctx.fillStyle='#8ba8ff55';ctx.fillRect(x,y,3,3)}
+ ctx.fillStyle='#111b45';ctx.fillRect(0,ground,W,H-ground);
+ ctx.fillStyle=settings[difficulty].color;ctx.fillRect(0,ground,W,5);
+ ctx.strokeStyle='#4964b5';ctx.lineWidth=2;
+ for(let x=-(groundOffset%48);x<W;x+=48){ctx.beginPath();ctx.moveTo(x,ground+5);ctx.lineTo(x-20, H);ctx.stroke()}
+}
+function drawPlayer(){
+ ctx.save();ctx.translate(player.x+player.size/2,player.y+player.size/2);ctx.rotate(player.rot);
+ ctx.shadowColor=settings[difficulty].color;ctx.shadowBlur=20;
+ ctx.fillStyle=settings[difficulty].color;ctx.fillRect(-player.size/2,-player.size/2,player.size,player.size);
+ ctx.shadowBlur=0;ctx.strokeStyle='#eaffff';ctx.lineWidth=3;ctx.strokeRect(-player.size/2+5,-player.size/2+5,player.size-10,player.size-10);
+ ctx.fillStyle='#102047';ctx.fillRect(-9,-7,6,6);ctx.fillRect(5,-7,6,6);
+ ctx.restore();
+}
+function drawObstacle(o){
+ ctx.save();ctx.shadowColor='#ff4f8d';ctx.shadowBlur=13;ctx.fillStyle='#ff4d86';ctx.strokeStyle='#ffd2e2';ctx.lineWidth=2;
+ if(o.type==='spikes'){
+  for(let i=0;i<o.count;i++){let x=o.x+i*36;ctx.beginPath();ctx.moveTo(x,ground);ctx.lineTo(x+18,ground-o.h);ctx.lineTo(x+36,ground);ctx.closePath();ctx.fill();ctx.stroke()}
+ }else{ctx.fillRect(o.x,ground-o.h,o.w,o.h);ctx.strokeRect(o.x,ground-o.h,o.w,o.h);ctx.fillStyle='#ffb0ca';ctx.fillRect(o.x+8,ground-o.h+9,7,7)}
+ ctx.restore();
+}
+function draw(){
+ drawBackground();
+ obstacles.forEach(drawObstacle);
+ particles.forEach(p=>{ctx.globalAlpha=Math.max(0,p.life/22);ctx.fillStyle=settings[difficulty].color;ctx.fillRect(p.x,p.y,5,5);ctx.globalAlpha=1});
+ if(player)drawPlayer();
+ const pct=Math.min(100,Math.floor(world/levelLength*100));
+ ctx.fillStyle='#ffffff22';ctx.fillRect(0,0,W,5);ctx.fillStyle=settings[difficulty].color;ctx.fillRect(0,0,W*pct/100,5);
+}
+function update(dt){
+ const s=dt/16.666;frame+=s;world+=speed*s;groundOffset+=speed*s;
+ speed=settings[difficulty].speed+Math.min(1.8,world/5000);
+ player.vy+=settings[difficulty].gravity*s;player.y+=player.vy*s;
+ if(player.y>=ground-player.size){player.y=ground-player.size;player.vy=0;player.onGround=true;player.rot=Math.round(player.rot/(Math.PI/2))*(Math.PI/2)}
+ else{player.onGround=false;player.rot+=.105*s}
+ spawnIn-=speed*s;
+ if(spawnIn<=0){makeObstacle();let gap=settings[difficulty].gap;spawnIn=gap+Math.random()*115}
+ obstacles.forEach(o=>o.x-=speed*s);
+ obstacles=obstacles.filter(o=>o.x+o.w>-10);
+ particles.forEach(p=>{p.x+=p.vx*s;p.y+=p.vy*s;p.vy+=.15*s;p.life-=s});
+ particles=particles.filter(p=>p.life>0);
+ score=world/10;
+ // A slightly forgiving collision box keeps the game fair.
+ const hit={x:player.x+6,y:player.y+5,w:player.size-12,h:player.size-10};
+ for(const o of obstacles){
+  const box=o.type==='spikes'?{x:o.x+5,y:ground-o.h+13,w:o.w-10,h:o.h-13}:{x:o.x+3,y:ground-o.h+3,w:o.w-6,h:o.h-3};
+  if(rectHit(hit,box)){crash();return}
+ }
+ scoreEl.textContent='SCORE '+Math.floor(score);progressEl.textContent=Math.min(100,Math.floor(world/levelLength*100))+'%';
+ if(world>=levelLength){crash();document.getElementById('endTitle').textContent='LEVEL COMPLETE!'}
+}
+function loop(now){
+ if(state!=='playing')return;
+ const dt=Math.min(34,now-lastTime||16.67);lastTime=now;
+ update(dt);draw();
+ if(state==='playing')requestAnimationFrame(loop);
+}
+document.getElementById('diffs').addEventListener('click',e=>{
+ const b=e.target.closest('[data-diff]');if(!b)return;
+ difficulty=b.dataset.diff;document.querySelectorAll('.diff').forEach(x=>x.classList.toggle('selected',x===b));
+});
+document.getElementById('play').onclick=start;
+document.getElementById('retry').onclick=start;
+document.getElementById('home').onclick=()=>{state='menu';end.classList.add('hidden');menu.classList.remove('hidden');hud.classList.add('hidden');bestMenu.textContent='BEST: '+best;draw()};
+document.getElementById('pauseHome').onclick=()=>{state='menu';pauseLayer.classList.add('hidden');menu.classList.remove('hidden');hud.classList.add('hidden');bestMenu.textContent='BEST: '+best;draw()};
+document.getElementById('resume').onclick=pause;
+window.addEventListener('keydown',e=>{
+ if(['Space','ArrowUp','KeyW'].includes(e.code)){e.preventDefault();if(state==='menu')return;jump()}
+ if(e.code==='KeyP'&&!e.repeat)pause();
+ if(e.code==='Escape'&&!e.repeat)pause();
+});
+canvas.addEventListener('pointerdown',()=>jump());
+draw();
+})();
+</script>
+</body>
+</html>
