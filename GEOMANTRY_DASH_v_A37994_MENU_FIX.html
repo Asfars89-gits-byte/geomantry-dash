@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GEOMANTRY DASH v.A37993</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#080d20;color:white;font:16px Arial;display:grid;place-items:center;min-height:100vh}#app{width:min(1000px,96vw);height:min(650px,94vh);background:linear-gradient(#142650,#080d20);border:1px solid #4266a5;border-radius:16px;overflow:hidden;position:relative}header{height:58px;padding:18px;border-bottom:1px solid #345;display:flex;justify-content:space-between;color:#35e7ff;font-weight:bold;letter-spacing:2px}.ver{font-size:11px;color:#aabbe0}.screen{display:none;position:absolute;inset:59px 0 0;align-items:center;justify-content:center;text-align:center;padding:20px}.active{display:flex}.panel{width:min(620px,96%);background:#0b1732;border:1px solid #4266a5;border-radius:16px;padding:28px;box-shadow:0 0 35px #102c60}h1{font-size:clamp(34px,7vw,64px);margin:14px 0;color:white;text-shadow:0 0 20px #258fff}h2{margin:10px}p{color:#b8c9e9;line-height:1.5}.eyebrow{color:#86a9ec;font-size:11px;letter-spacing:4px}button{background:#173765;border:1px solid #538ac8;color:white;padding:12px 17px;border-radius:8px;font-weight:bold;cursor:pointer;margin:5px}button:hover{background:#23609a}.primary{background:#087fae;border:0;min-width:170px}.actions{margin:15px}.diffgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:18px 0}.diff{margin:0;padding:12px 5px;font-size:12px}.diff small{display:block;color:#b6c9eb;margin-top:5px}.selected{outline:2px solid #35e7ff;background:#155078}#gameScreen{padding:0;flex-direction:column}.hud{height:48px;width:100%;display:flex;justify-content:space-around;align-items:center;background:#0b1732;font-weight:bold}.hud span{color:#35e7ff}canvas{width:100%;flex:1;min-height:0;touch-action:manipulation}.hint{height:36px;color:#9eb4df;font-size:12px;padding:10px}#overlay{display:none;position:absolute;inset:48px 0 36px;background:#05091bdc;place-items:center}#overlay .panel{width:min(420px,90%)}@media(max-width:600px){.diffgrid{grid-template-columns:repeat(2,1fr)}.panel{padding:18px 12px}header{padding:18px 10px}.ver{font-size:9px}}
+</style></head><body><div id="app">
+<header><span>◆ GEOMANTRY DASH</span><span class="ver">ARCADE EDITION · v.A37993</span></header>
+<section id="menu" class="screen active"><div class="panel"><div class="eyebrow">SEASON 01 · NEON FRONTIER</div><h1>READY TO DASH?</h1><p>Jump over obstacles. Build your score. Beat every difficulty.</p><div class="actions"><button class="primary" id="play">▶ PLAY NOW</button><button id="howBtn">HOW TO PLAY</button></div><div class="actions"><button id="garageBtn">GARAGE</button><button id="settingsBtn">SETTINGS</button></div><p style="font-size:11px">SPACE / ↑ / W / CLICK / TAP TO JUMP</p></div></section>
+<section id="difficulty" class="screen"><div class="panel"><div class="eyebrow">SELECT YOUR CHALLENGE</div><h2>CHOOSE DIFFICULTY</h2><div class="diffgrid" id="diffGrid"></div><div class="actions"><button class="primary" id="start">START DASH</button><button class="back">BACK</button></div></div></section>
+<section id="garageScreen" class="screen"><div class="panel"><div class="eyebrow">PLAYER CUSTOMIZATION</div><h2>GARAGE</h2><p>Choose your cube colour. Your selection is used in the next dash.</p><div id="garagePreview" style="width:54px;height:54px;margin:18px auto;background:#35e7ff;border-radius:8px;box-shadow:0 0 22px #35e7ff"></div><div class="actions"><button class="skin" data-c="#35e7ff">CYAN</button><button class="skin" data-c="#ff4fc8">PINK</button><button class="skin" data-c="#9bff5a">LIME</button><button class="skin" data-c="#ffb347">GOLD</button></div><button class="back">BACK</button></div></section>
+<section id="settingsScreen" class="screen"><div class="panel"><div class="eyebrow">GAME OPTIONS</div><h2>SETTINGS</h2><p>Dash speed stays steady. Choose how the game looks.</p><div class="actions"><button id="effectsToggle">VISUAL EFFECTS: ON</button></div><p id="settingsStatus" style="font-size:13px">Glow effects are enabled.</p><button class="back">BACK</button></div></section>
+<section id="howScreen" class="screen"><div class="panel"><div class="eyebrow">QUICK GUIDE</div><h2>HOW TO PLAY</h2><p>Press SPACE, W, ↑, click, or tap to jump. Avoid obstacles until you reach the score goal. Harder modes add more obstacle patterns, not extra speed.</p><button class="back">BACK</button></div></section>
+<section id="gameScreen" class="screen"><div class="hud"><div>SCORE: <span id="score">0</span></div><div id="mode">NORMAL</div><div>GOAL: <span id="goal">5000</span></div><button id="pause">Ⅱ</button></div><canvas id="game" width="1000" height="520"></canvas><div class="hint">SPACE / ↑ / W / CLICK / TAP TO JUMP</div><div id="overlay"><div class="panel"><div class="eyebrow" id="tag">PAUSED</div><h2 id="otitle">GAME PAUSED</h2><p id="msg">Ready when you are.</p><button class="primary" id="resume">RESUME</button><button id="retry">RESTART</button><button id="tomenu">MENU</button></div></div></section>
+</div>
+<script>
+(()=>{
+const $=id=>document.getElementById(id),screens=['menu','difficulty','garageScreen','settingsScreen','howScreen','gameScreen'];
+function show(id){screens.forEach(s=>$(s).classList.toggle('active',s===id))}
+const modes=[['EASY',3000,.75,'Relaxed patterns'],['NORMAL',5000,1,'Classic challenge'],['HARD',7000,1.25,'More obstacles'],['INSANE',8500,1.5,'Tough patterns'],['DARKNET',9500,1.8,'Dark, varied obstacles'],['BREEZED',12400,2.1,'Unique obstacle designs']];
+let selected=1,color='#35e7ff',effects=true,running=false,paused=false,score=0,last=0,spawn=0,obs=[];
+modes.forEach((m,i)=>{let b=document.createElement('button');b.className='diff'+(i===1?' selected':'');b.innerHTML=m[0]+'<small>'+m[1].toLocaleString()+' PTS</small><small>'+m[3]+'</small>';b.onclick=()=>{selected=i;[...$('diffGrid').children].forEach((x,j)=>x.classList.toggle('selected',i===j))};$('diffGrid').appendChild(b)});
+$('play').onclick=()=>show('difficulty');$('howBtn').onclick=()=>show('howScreen');$('garageBtn').onclick=()=>show('garageScreen');$('settingsBtn').onclick=()=>show('settingsScreen');document.querySelectorAll('.back').forEach(b=>b.onclick=()=>show('menu'));
+document.querySelectorAll('.skin').forEach(b=>b.onclick=()=>{
+ color=b.dataset.c;
+ $('garagePreview').style.background=color;
+ $('garagePreview').style.boxShadow=effects?'0 0 22px '+color:'none';
+ document.querySelectorAll('.skin').forEach(x=>x.style.outline='');
+ b.style.outline='2px solid white';
+});
+$('effectsToggle').onclick=()=>{
+ effects=!effects;
+ $('effectsToggle').textContent='VISUAL EFFECTS: '+(effects?'ON':'OFF');
+ $('settingsStatus').textContent=effects?'Glow effects are enabled.':'Glow effects are disabled.';
+ $('garagePreview').style.boxShadow=effects?'0 0 22px '+color:'none';
+};
+const c=$('game'),x=c.getContext('2d'),ground=440,p={x:145,y:406,w:34,h:34,vy:0,grounded:true};
+function jump(){if(running&&!paused&&p.grounded){p.vy=-12.5;p.grounded=false}}
+function start(){score=0;spawn=0;obs=[];p.y=ground-p.h;p.vy=0;p.grounded=true;running=true;paused=false;$('overlay').style.display='none';$('resume').style.display='';$('mode').textContent=modes[selected][0];$('goal').textContent=modes[selected][1].toLocaleString();$('score').textContent='0';show('gameScreen');last=performance.now();requestAnimationFrame(loop)}
+$('start').onclick=start;
+function draw(){let name=modes[selected][0],accent=name==='DARKNET'?'#a15cff':name==='BREEZED'?'#5ce6ce':'#35e7ff';x.fillStyle=name==='DARKNET'?'#090719':name==='BREEZED'?'#102333':'#0b1430';x.fillRect(0,0,1000,520);x.strokeStyle=name==='DARKNET'?'#30204e':'#1c3260';for(let a=0;a<1000;a+=50){x.beginPath();x.moveTo(a,0);x.lineTo(a,ground);x.stroke()}for(let a=40;a<ground;a+=50){x.beginPath();x.moveTo(0,a);x.lineTo(1000,a);x.stroke()}x.fillStyle='#142650';x.fillRect(0,ground,1000,80);x.fillStyle=accent;x.fillRect(0,ground,1000,4);
+obs.forEach(o=>{x.save();x.fillStyle=accent;x.shadowBlur=effects?14:0;x.shadowColor=accent;if(o.kind===0){x.beginPath();x.moveTo(o.x,ground);x.lineTo(o.x+o.w/2,ground-o.h);x.lineTo(o.x+o.w,ground);x.fill()}else{x.fillRect(o.x,ground-o.h,o.w,o.h);x.fillStyle='#fff';x.fillRect(o.x+6,ground-o.h+7,5,5)}x.restore()});
+x.save();x.translate(p.x+p.w/2,p.y+p.h/2);x.rotate(Math.max(-.3,Math.min(.3,-p.vy*.025)));x.fillStyle=color;x.shadowBlur=effects?16:0;x.shadowColor=color;x.fillRect(-17,-17,34,34);x.fillStyle='#071126';x.fillRect(-7,-6,5,5);x.fillRect(5,-6,5,5);x.restore()}
+function finish(win){running=false;$('overlay').style.display='grid';$('resume').style.display='none';$('tag').textContent=win?'LEVEL COMPLETE':'RUN OVER';$('otitle').textContent=win?'YOU DID IT!':'GAME OVER';$('msg').textContent=win?'You cleared '+modes[selected][0]+'! Score: '+Math.floor(score).toLocaleString():'Final score: '+Math.floor(score).toLocaleString()+'. Try again!'}
+function loop(t){if(!running)return;if(paused){requestAnimationFrame(loop);return}let dt=Math.min((t-last)/16.67,2);last=t;score+=Math.max(1,Math.round(1.5*dt));$('score').textContent=Math.floor(score).toLocaleString();draw();p.vy+=.68*dt;p.y+=p.vy*dt;if(p.y+p.h>=ground){p.y=ground-p.h;p.vy=0;p.grounded=true}
+spawn-=dt;if(spawn<=0){let k=Math.random()<.62?0:1,w=k?45:30,h=k?52:42;if(modes[selected][0]==='BREEZED'&&Math.random()<.35){w=65;h=65}if(modes[selected][0]==='DARKNET'&&Math.random()<.35){w=36;h=75}obs.push({x:1020,w,h,kind:k});spawn=Math.max(34,100-modes[selected][2]*22)+Math.random()*22}
+obs.forEach(o=>o.x-=4.2*dt);obs=obs.filter(o=>o.x+o.w>0);
+for(let o of obs){let hit=p.x+p.w-6>o.x+4&&p.x+6<o.x+o.w-4&&p.y+p.h-5>ground-o.h+(o.kind===0?14:2);if(hit){finish(false);return}}
+if(score>=modes[selected][1]){finish(true);return}requestAnimationFrame(loop)}
+$('pause').onclick=()=>{if(!running)return;paused=true;$('overlay').style.display='grid';$('resume').style.display='';$('tag').textContent='PAUSED';$('otitle').textContent='GAME PAUSED';$('msg').textContent='Ready when you are.'};
+$('resume').onclick=()=>{if(!running)return;paused=false;$('overlay').style.display='none';last=performance.now();requestAnimationFrame(loop)};
+$('retry').onclick=start;$('tomenu').onclick=()=>{running=false;paused=false;$('overlay').style.display='none';show('menu')};
+window.addEventListener('keydown',e=>{if(['Space','ArrowUp','KeyW'].includes(e.code)){e.preventDefault();jump()}if(e.code==='Escape'&&running&&!paused)$('pause').click()});c.addEventListener('pointerdown',jump);
+})();
+</script></body></html>
